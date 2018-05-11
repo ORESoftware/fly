@@ -6,12 +6,10 @@ import path = require('path');
 const app = express();
 
 app.use(function (req, res, next) {
-  console.log('req.path is 1111:', req.path);
   next();
 });
 
 app.use('/', function (req, res, next) {
-  console.log('req.path is 2222:', req.path);
   
   if (String(req.path).endsWith('.js')) {
     next();
@@ -20,11 +18,6 @@ app.use('/', function (req, res, next) {
     res.sendFile(path.resolve(process.cwd() + '/zoom.html'));
     
   }
-});
-
-app.use(function (req, res, next) {
-  console.log('req.path is 3333:', req.path);
-  next();
 });
 
 app.use(fly({
