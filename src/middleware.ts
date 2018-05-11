@@ -68,7 +68,7 @@ export const fly = function (opts: FlyOptions) {
     const originalUrl = parseUrl.original(req);
     
     const id = uuid.v4();
-    let absFilePath = null;
+    let absFilePath = '';
     
     if (fieldName && (req as any)[fieldName]) {
       absFilePath = (req as any)[fieldName];
@@ -85,8 +85,18 @@ export const fly = function (opts: FlyOptions) {
       console.log('absFilePath 222:', absFilePath);
     }
     
-    k.send({id, absFilePath} as IPCMessage);
-    k.send(`handle:${id}`, req.socket);
+    fs.stat(absFilePath, function (err, stats) {
+      
+      if(err){
+        return next();
+      }
+  
+      k.send({id, absFilePath} as IPCMessage);
+      k.send(`handle:${id}`, req.socket);
+      
+    });
+    
+ 
     
   }
   
