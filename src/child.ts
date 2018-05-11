@@ -8,7 +8,12 @@ import {getStream} from "../dist/fly";
 const hash = new Map();
 import fs = require('fs');
 
-const writeResponse = function (s: Socket, file: string) {
+const writeResponse = function(status: string){
+
+
+};
+
+const readFile = function (s: Socket, file: string) {
   
   s.write([
     'HTTP/1.1 200 OK',
@@ -29,8 +34,6 @@ const writeResponse = function (s: Socket, file: string) {
       s.end('error: ' + e && e.stack || e.message || util.inspect(e));
     });
   
-  // s.end(message);
-  
 };
 
 const handleSocket = function (id: string, s: Socket) {
@@ -42,7 +45,7 @@ const handleSocket = function (id: string, s: Socket) {
     return;
   }
   
-  writeResponse(s, v.absFilePath);
+  readFile(s, v.absFilePath);
   
 };
 
@@ -55,7 +58,7 @@ const handleMessage = function (id: string, m: IPCMessage) {
     return;
   }
   
-  writeResponse(socket, m.absFilePath);
+  readFile(socket, m.absFilePath);
 };
 
 process.on('message', function (m, socket) {

@@ -16,6 +16,7 @@ app.use('/', function (req, res, next) {
     }
 });
 app.use(middleware_1.fly({
+    debug: true,
     basePath: path.join(__dirname, 'fixtures')
 }));
 app.use(function (req, res, next) {

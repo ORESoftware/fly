@@ -24,11 +24,13 @@ export type FileMatchValidator = (file: string) => boolean;
 export interface FlyOptions {
   fileFieldName?: string,
   basePath: string,
+  base: string,
   extensions?: Array<string>,
   match?: Array<RegExp>,
   notMatch?: Array<RegExp>,
   fileMatchValidator?: FileMatchValidator,
-  staticFS?: boolean
+  staticFS?: boolean,
+  debug?: boolean
 }
 
 export interface IPCMessage {
@@ -53,19 +55,26 @@ export const fly = function (opts: FlyOptions) {
   const match = flattenDeep([opts.match]).filter(matchingFilter);
   const notMatch = flattenDeep([opts.match]).filter(matchingFilter);
   const staticFS = opts.staticFS !== false;
+  const debug = opts.debug === true || process.env.fly_debug === 'yes';
   
-  let basePath = opts.basePath;
+  let basePath = opts.basePath || opts.base;
   const validator = opts.fileMatchValidator || null;
+  const fieldName = opts.fileFieldName || '';
+  
+  if (fieldName && typeof fieldName !== 'string') {
+    throw getCleanTrace(new Error('@oresoftware/fly usage error - if "fieldName" is provided it must be a string.'));
+  }
   
   if (validator) {
-    assert.equal(typeof validator, 'function', '@oresoftware/fly error => "fileMatchValidator" must be a function.')
+    assert.equal(typeof validator, 'function', '@oresoftware/fly usage error => "fileMatchValidator" must be a function.')
   }
   
   if (!(basePath && typeof basePath === 'string' && path.isAbsolute(basePath))) {
-    throw new Error('@oresoftware/fly error => "basePath" must be an absolute path.');
+    throw getCleanTrace(new Error('@oresoftware/fly usage error => "basePath" must be an absolute path.'));
   }
   
   basePath = path.resolve(basePath);
+  debug && log.info('the "basePath" for instrumenting js files is:', basePath);
   
   try {
     fs.statSync(basePath);
@@ -92,8 +101,6 @@ export const fly = function (opts: FlyOptions) {
   
   const map = {} as { [key: string]: boolean };
   
-  log.info('the basePath is:', basePath);
-  
   if (staticFS) {
     
     let stdout = '';
@@ -105,8 +112,10 @@ export const fly = function (opts: FlyOptions) {
       throw getCleanTrace(err);
     }
     
+    debug && log.info('the following files can be instrumented by istanbul:');
     String(stdout).split('\n').map(v => String(v).trim()).filter(Boolean).forEach(function (v) {
       if (doesMatch(v) && doesNotMatch(v)) {
+        debug && log.info(chalk.cyan.bold(v));
         map[v] = true;
       }
     });
@@ -115,11 +124,10 @@ export const fly = function (opts: FlyOptions) {
     log.info('this many files are available to be instrumented by istanbul:', ln);
     if (staticFS) {
       log.info('as an optimization, @oresoftware/fly has a loaded a map of the fs into memory.');
-      log.info('if the static assets on the fs change at runtime, then use staticFS:false.');
+      log.info(`if the static assets on the fs change at runtime, then use ${chalk.blueBright('staticFS: false')}.`);
     }
   }
   
-  const fieldName = opts.fileFieldName || '';
   const k = cp.fork(__dirname + '/child.js');
   
   return <RequestHandler> function (req, res, next) {
@@ -140,12 +148,10 @@ export const fly = function (opts: FlyOptions) {
       absFilePath = path.resolve(basePath + '/' + absFilePath);
     }
     
-    log.info('file coming in:', absFilePath);
-    
     if (staticFS) {
       if (!map[absFilePath]) {
         // file was not in the map, so we just continue on
-        log.warn('file was not in map:', absFilePath);
+        debug && log.warn('file was not in staticFS map:', absFilePath);
         return next()
       }
       
@@ -157,7 +163,10 @@ export const fly = function (opts: FlyOptions) {
     fs.stat(absFilePath, function (err, stats) {
       
       if (err) {
-        log.warn('err:', err && err.message || err);
+        if (debug) {
+          log.warn('could not read file with path:', absFilePath);
+          log.warn(err && err.message || err);
+        }
         return next();
       }
       
