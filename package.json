@@ -2,7 +2,7 @@
   "name": "@oresoftware/fly",
   "version": "0.0.101",
   "description": "Semver-oriented TypeScript library skeleton.",
-  "main": "dist/index.js",
+  "main": "dist/middleware.js",
   "bin": {
     "oresoftware_fly": "dist/cli.js"
   },

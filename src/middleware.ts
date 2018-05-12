@@ -57,6 +57,13 @@ export const fly = function (opts: FlyOptions) {
   const staticFS = opts.staticFS !== false;
   const debug = opts.debug === true || process.env.fly_debug === 'yes';
   
+  let extensions = opts.extensions || ['.js'];
+  const ext = {};
+  
+  if (!Array.isArray(extensions)) {
+    throw getCleanTrace(new Error('@oresoftware/fly usage error - "extensions" must be an array.'));
+  }
+  
   let basePath = opts.basePath || opts.base;
   const validator = opts.fileMatchValidator || null;
   const fieldName = opts.fileFieldName || '';
@@ -84,6 +91,13 @@ export const fly = function (opts: FlyOptions) {
     log.error(chalk.magenta('where "basePath" is ', chalk.cyan.bold(basePath)));
     throw getCleanTrace(err);
   }
+  
+  const hasAcceptableExtension = function (s: string) {
+    if (extensions.length < 1) return true;
+    return extensions.some(function (ext) {
+      return s.endsWith(ext);
+    });
+  };
   
   const doesMatch = function (s: string) {
     if (match.length < 1) return true;
@@ -114,7 +128,7 @@ export const fly = function (opts: FlyOptions) {
     
     debug && log.info('the following files can be instrumented by istanbul:');
     String(stdout).split('\n').map(v => String(v).trim()).filter(Boolean).forEach(function (v) {
-      if (doesMatch(v) && doesNotMatch(v)) {
+      if (doesMatch(v) && doesNotMatch(v) && hasAcceptableExtension(v)) {
         debug && log.info(chalk.cyan.bold(v));
         map[v] = true;
       }
@@ -164,7 +178,7 @@ export const fly = function (opts: FlyOptions) {
       
       if (err) {
         if (debug) {
-          log.warn('could not read file with path:', absFilePath);
+          log.warn('could not stat file with path:', absFilePath);
           log.warn(err && err.message || err);
         }
         return next();
@@ -178,3 +192,6 @@ export const fly = function (opts: FlyOptions) {
   }
   
 };
+
+
+export default fly;
