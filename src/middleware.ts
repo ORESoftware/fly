@@ -23,8 +23,8 @@ export type FileMatchValidator = (file: string) => boolean;
 
 export interface FlyOptions {
   fileFieldName?: string,
-  basePath: string,
-  base: string,
+  basePath?: string,
+  base?: string,
   extensions?: Array<string>,
   match?: Array<RegExp>,
   notMatch?: Array<RegExp>,
@@ -49,7 +49,17 @@ const matchingFilter = function (v: any) {
   return v;
 };
 
-export const fly = function (opts: FlyOptions) {
+export const fly = function (p: string | FlyOptions, opts?: FlyOptions) {
+  
+  let basePath = '';
+  
+  if (p && typeof p === 'object') {
+    opts = p as FlyOptions;
+    basePath = opts.basePath || opts.base;
+  }
+  else {
+    basePath = p as string;
+  }
   
   opts = opts || {} as FlyOptions;
   const match = flattenDeep([opts.match]).filter(matchingFilter);
@@ -58,13 +68,11 @@ export const fly = function (opts: FlyOptions) {
   const debug = opts.debug === true || process.env.fly_debug === 'yes';
   
   let extensions = opts.extensions || ['.js'];
-  const ext = {};
   
   if (!Array.isArray(extensions)) {
     throw getCleanTrace(new Error('@oresoftware/fly usage error - "extensions" must be an array.'));
   }
   
-  let basePath = opts.basePath || opts.base;
   const validator = opts.fileMatchValidator || null;
   const fieldName = opts.fileFieldName || '';
   
@@ -192,6 +200,5 @@ export const fly = function (opts: FlyOptions) {
   }
   
 };
-
 
 export default fly;

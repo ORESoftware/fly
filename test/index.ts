@@ -20,10 +20,7 @@ app.use('/', function (req, res, next) {
   }
 });
 
-app.use(fly({
-  debug: true,
-  basePath: path.join(__dirname, 'fixtures')
-}));
+app.use(fly(path.join(__dirname, 'fixtures')));
 
 app.use(function (req, res, next) {
   next(new Error('404'));
