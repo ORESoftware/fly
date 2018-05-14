@@ -38,6 +38,10 @@ export interface IPCMessage {
   absFilePath: string
 }
 
+export interface HTTPMethods {
+  [index: string]: boolean;
+}
+
 const flattenDeep = function (a: Array<any>): Array<any> {
   return a.reduce((acc, val) => Array.isArray(val) ? acc.concat(flattenDeep(val)) : acc.concat(val), []);
 };
@@ -152,7 +156,18 @@ export const fly = function (p: string | FlyOptions, opts?: FlyOptions) {
   
   const k = cp.fork(__dirname + '/child.js');
   
+  const methods = <HTTPMethods>{
+    'HEAD': true,
+    'GET': true
+  };
+  
   return <RequestHandler> function (req, res, next) {
+  
+    const method = String(req.method || '').trim().toUpperCase();
+  
+    if (!methods[method]) {
+      return next();
+    }
     
     const originalUrl = parseUrl.original(req);
     const id = uuid.v4();
